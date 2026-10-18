@@ -1,0 +1,1078 @@
+<!DOCTYPE html>
+<html lang="ar" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta name="theme-color" content="#007aff">
+    <title>مكتبة الجوراني — إدارة النواقص</title>
+    
+    <!-- ربط ملف PWA -->
+    <link rel="manifest" href="manifest.json">
+    
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <style>
+        /* (نفس التصميم الخاص بك، لم يتغير شيء) */
+        :root {
+            --primary: #007aff; --primary-hover: #0066d6; --primary-light: rgba(0, 122, 255, 0.12);
+            --secondary: #34c759; --danger: #ff3b30; --warning: #ff9500; --info: #5ac8fa;
+            --bg-body: #f5f5f7; --bg-elevated: rgba(255, 255, 255, 0.72); --bg-glass: rgba(255, 255, 255, 0.6);
+            --text-main: #1d1d1f; --text-muted: #86868b; --border-color: rgba(0, 0, 0, 0.08);
+            --radius-sm: 12px; --radius-md: 18px; --radius-lg: 24px; --radius-xl: 32px;
+            --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.04); --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.06); --shadow-lg: 0 16px 48px rgba(0, 0, 0, 0.1);
+        }
+        body.dark-theme {
+            --bg-body: #000000; --bg-elevated: rgba(28, 28, 30, 0.75); --bg-glass: rgba(28, 28, 30, 0.6);
+            --text-main: #f5f5f7; --text-muted: #98989d; --border-color: rgba(255, 255, 255, 0.1);
+            --primary-light: rgba(10, 132, 255, 0.18); --shadow-md: 0 8px 32px rgba(0, 0, 0, 0.4);
+        }
+        * { box-sizing: border-box; margin: 0; padding: 0; transition: background-color 0.35s cubic-bezier(0.22, 1, 0.36, 1), color 0.35s cubic-bezier(0.22, 1, 0.36, 1), border-color 0.35s cubic-bezier(0.22, 1, 0.36, 1); }
+        html, body { max-width: 100%; overflow-x: hidden; }
+        body { font-family: 'Inter', -apple-system, BlinkMacSystemFont, sans-serif; background-color: var(--bg-body); color: var(--text-main); direction: rtl; text-align: right; line-height: 1.5; min-height: 100vh; display: flex; flex-direction: column; -webkit-font-smoothing: antialiased; }
+        #light-rays-container { position: fixed; inset: 0; z-index: 0; pointer-events: none; overflow: hidden; }
+        #light-rays-canvas { width: 100%; height: 100%; display: block; }
+        .app-wrapper { position: relative; z-index: 1; display: flex; flex-direction: column; min-height: 100vh; }
+        header { position: sticky; top: 0; z-index: 50; background: var(--bg-glass); backdrop-filter: blur(24px) saturate(180%); -webkit-backdrop-filter: blur(24px) saturate(180%); border-bottom: 1px solid var(--border-color); padding: 0.8rem 1.2rem; }
+        .header-inner { max-width: 1280px; margin: 0 auto; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem; }
+        .header-brand { display: flex; align-items: center; gap: 12px; }
+        .header-brand i { font-size: 1.6rem; color: var(--primary); }
+        .header-brand h1 { font-size: 1.25rem; font-weight: 700; letter-spacing: -0.02em; color: var(--text-main); }
+        .header-brand span { font-size: 0.7rem; font-weight: 500; color: var(--text-muted); background: var(--bg-elevated); padding: 2px 10px; border-radius: 20px; border: 1px solid var(--border-color); }
+        .header-actions { display: flex; align-items: center; gap: 10px; }
+        .theme-toggle-btn { background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-main); width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
+        .theme-toggle-btn:hover { background: var(--primary-light); color: var(--primary); transform: scale(1.08); }
+        .nav-tabs-wrapper { max-width: 1280px; margin: 0 auto; padding: 0.5rem 0 0 0; display: flex; gap: 4px; overflow-x: auto; }
+        .nav-tab { background: transparent; border: none; color: var(--text-muted); padding: 8px 18px; border-radius: 10px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1); border-bottom: 2px solid transparent; border-radius: 0; white-space: nowrap; }
+        .nav-tab:hover { color: var(--text-main); }
+        .nav-tab.active { color: var(--primary); border-bottom-color: var(--primary); }
+        main { max-width: 1280px; margin: 1.5rem auto; padding: 0 1rem; flex: 1; width: 100%; }
+        .tab-content { display: none; }
+        .tab-content.active { display: block; animation: appleIn 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+        @keyframes appleIn { from { opacity: 0; transform: translateY(12px) scale(0.98); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .dashboard { display: grid; grid-template-columns: repeat(auto-fit, minmax(140px, 1fr)); gap: 0.75rem; margin-bottom: 1.5rem; }
+        .stat-card { background: var(--bg-elevated); backdrop-filter: blur(20px) saturate(180%); -webkit-backdrop-filter: blur(20px) saturate(180%); padding: 1.1rem; border-radius: var(--radius-lg); border: 1px solid var(--border-color); box-shadow: var(--shadow-sm); display: flex; flex-direction: column; justify-content: center; }
+        .stat-card h3 { font-size: 0.72rem; font-weight: 600; color: var(--text-muted); margin-bottom: 0.35rem; display: flex; align-items: center; gap: 5px; }
+        .stat-card p { font-size: 1.6rem; font-weight: 700; letter-spacing: -0.03em; color: var(--text-main); }
+        .chart-card { grid-column: 1 / -1; display: flex; flex-direction: row; align-items: center; justify-content: space-between; }
+        .chart-container { width: 90px; height: 90px; flex-shrink: 0; }
+        .tools-bar { display: flex; gap: 6px; margin-bottom: 1rem; flex-wrap: wrap; }
+        .btn-tool { background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-main); padding: 7px 14px; border-radius: 10px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 0.78rem; display: flex; align-items: center; gap: 5px; transition: all 0.25s; box-shadow: var(--shadow-sm); }
+        .btn-tool:hover { background: var(--primary-light); border-color: var(--primary); color: var(--primary); transform: translateY(-2px); }
+        .btn-tool.excel:hover { background: rgba(52, 199, 89, 0.12); border-color: var(--secondary); color: var(--secondary); }
+        .btn-tool.pdf:hover { background: rgba(255, 59, 48, 0.12); border-color: var(--danger); color: var(--danger); }
+        .content-wrapper { display: grid; grid-template-columns: 1fr; gap: 1.25rem; align-items: start; }
+        @media (min-width: 992px) { .content-wrapper { grid-template-columns: 380px 1fr; gap: 1.5rem; } }
+        .panel { background: var(--bg-elevated); backdrop-filter: blur(20px) saturate(180%); padding: 1.25rem; border-radius: var(--radius-xl); border: 1px solid var(--border-color); box-shadow: var(--shadow-md); }
+        .panel-title { font-size: 1rem; font-weight: 700; margin-bottom: 1rem; display: flex; align-items: center; gap: 7px; color: var(--primary); border-bottom: 1px solid var(--border-color); padding-bottom: 0.6rem; }
+        .form-group { margin-bottom: 0.9rem; }
+        .form-group label { display: block; margin-bottom: 0.3rem; font-weight: 600; font-size: 0.8rem; color: var(--text-muted); }
+        input[type="text"], input[type="url"], input[type="number"], input[type="file"], select, textarea { width: 100%; padding: 0.6rem 0.8rem; border: 1px solid var(--border-color); border-radius: var(--radius-sm); font-size: 0.86rem; font-family: inherit; background: var(--bg-body); color: var(--text-main); outline: none; transition: border-color 0.2s; }
+        input:focus, select:focus, textarea:focus { border-color: var(--primary); box-shadow: 0 0 0 3px var(--primary-light); }
+        .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .file-upload-zone { position: relative; border: 1.5px dashed var(--border-color); border-radius: var(--radius-sm); padding: 0.9rem; text-align: center; background: var(--bg-body); cursor: pointer; transition: all 0.25s; }
+        .file-upload-zone:hover { border-color: var(--primary); background: var(--primary-light); }
+        .file-upload-zone input[type="file"] { position: absolute; inset: 0; width: 100%; height: 100%; opacity: 0; cursor: pointer; }
+        .upload-placeholder { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; color: var(--text-muted); font-size: 0.8rem; font-weight: 500; }
+        .upload-placeholder i { color: var(--primary); }
+        .attachment-preview-box { display: none; margin-top: 6px; padding: 7px; border-radius: var(--radius-sm); background: var(--bg-body); border: 1px solid var(--border-color); }
+        .attachment-preview-box.active { display: flex; align-items: center; gap: 8px; }
+        .attachment-thumbnail { width: 40px; height: 40px; border-radius: 8px; object-fit: cover; }
+        .attachment-icon-badge { width: 38px; height: 38px; border-radius: 8px; background: var(--primary-light); color: var(--primary); display: flex; align-items: center; justify-content: center; font-size: 1.1rem; }
+        .attachment-details { flex: 1; overflow: hidden; }
+        .attachment-details p { font-size: 0.75rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .attachment-details span { font-size: 0.68rem; color: var(--text-muted); }
+        .remove-attachment-btn { background: rgba(255, 59, 48, 0.1); color: var(--danger); border: none; width: 24px; height: 24px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.75rem; }
+        .btn-submit { background: var(--primary); color: white; border: none; padding: 0.8rem 1.2rem; border-radius: var(--radius-sm); cursor: pointer; font-size: 0.88rem; font-weight: 600; width: 100%; display: flex; align-items: center; justify-content: center; gap: 6px; transition: all 0.25s; box-shadow: 0 4px 14px rgba(0, 122, 255, 0.25); font-family: inherit; }
+        .btn-submit:hover { background: var(--primary-hover); transform: translateY(-2px); }
+        .table-responsive { width: 100%; overflow-x: auto; border-radius: var(--radius-md); }
+        .tasks-table { width: 100%; border-collapse: collapse; text-align: right; font-size: 0.84rem; }
+        .tasks-table th { background: var(--bg-body); color: var(--text-muted); padding: 0.7rem 0.6rem; font-weight: 600; font-size: 0.75rem; border-bottom: 1px solid var(--border-color); white-space: nowrap; }
+        .tasks-table td { padding: 0.75rem 0.6rem; border-bottom: 1px solid var(--border-color); vertical-align: middle; }
+        .task-row { transition: background-color 0.25s; animation: rowIn 0.4s cubic-bezier(0.22, 1, 0.36, 1) both; }
+        .task-row:hover { background: var(--primary-light); }
+        @keyframes rowIn { from { opacity: 0; transform: translateX(-8px); } to { opacity: 1; transform: translateX(0); } }
+        .course-title { font-weight: 600; color: var(--text-main); display: block; }
+        .type-badge { display: inline-block; padding: 2px 8px; border-radius: 12px; font-size: 0.7rem; font-weight: 600; background: var(--primary-light); color: var(--primary); }
+        .shortage-badge { display: inline-block; min-width: 26px; text-align: center; padding: 2px 8px; border-radius: 10px; background: rgba(255, 59, 48, 0.12); color: var(--danger); font-weight: 700; font-size: 0.78rem; }
+        .shortage-badge.zero { background: rgba(52, 199, 89, 0.12); color: var(--secondary); }
+        .actions-cell { display: flex; gap: 4px; align-items: center; flex-wrap: wrap; }
+        .btn-icon { border: none; background: var(--bg-body); color: var(--text-muted); width: 30px; height: 30px; border-radius: 8px; cursor: pointer; display: inline-flex; align-items: center; justify-content: center; font-size: 0.8rem; transition: all 0.2s; }
+        .btn-icon:hover { transform: scale(1.1); }
+        .btn-ref:hover, .btn-restore:hover { background: var(--primary-light); color: var(--primary); }
+        .btn-notes:hover { background: rgba(90, 200, 250, 0.12); color: var(--info); }
+        .btn-delete:hover { background: rgba(255, 59, 48, 0.12); color: var(--danger); }
+        @media (max-width: 768px) {
+            .tasks-table thead { display: none; }
+            .tasks-table, .tasks-table tbody, .tasks-table tr, .tasks-table td { display: block; width: 100%; }
+            .tasks-table tr { margin-bottom: 0.75rem; background: var(--bg-elevated); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 0.65rem 0.75rem; }
+            .tasks-table td { padding: 0.3rem 0; display: flex; justify-content: space-between; align-items: center; border-bottom: 1px dashed var(--border-color); }
+            .tasks-table td:last-child { border-bottom: none; padding-top: 0.5rem; }
+            .tasks-table td::before { content: attr(data-label); font-weight: 600; color: var(--text-muted); font-size: 0.72rem; }
+        }
+        .pdf-panel { max-width: 900px; margin: 0 auto; }
+        .pdf-intro { color: var(--text-muted); font-size: 0.85rem; margin-bottom: 1rem; line-height: 1.6; }
+        .pdf-preview-list { display: flex; flex-direction: column; gap: 6px; margin-top: 1rem; }
+        .pdf-preview-item { display: flex; align-items: center; gap: 8px; padding: 6px; background: var(--bg-body); border: 1px solid var(--border-color); border-radius: var(--radius-sm); }
+        .pdf-preview-item img { width: 50px; height: 50px; border-radius: 8px; object-fit: cover; flex-shrink: 0; background: #fff; }
+        .pdf-item-info { flex: 1; overflow: hidden; }
+        .pdf-item-info p { font-size: 0.8rem; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .pdf-actions { display: flex; gap: 6px; margin-top: 1rem; flex-wrap: wrap; }
+        #toast-container { position: fixed; top: 15px; left: 50%; transform: translateX(-50%); z-index: 9999; display: flex; flex-direction: column; gap: 6px; pointer-events: none; width: 92%; max-width: 360px; }
+        .toast { pointer-events: auto; background: var(--bg-elevated); backdrop-filter: blur(20px); color: var(--text-main); padding: 10px 14px; border-radius: var(--radius-sm); box-shadow: var(--shadow-lg); display: flex; align-items: center; gap: 8px; border-right: 4px solid var(--primary); animation: toastIn 0.4s ease forwards; font-size: 0.82rem; font-weight: 600; border: 1px solid var(--border-color); }
+        .toast.success { border-right-color: var(--secondary); }
+        .toast.danger { border-right-color: var(--danger); }
+        @keyframes toastIn { from { opacity: 0; transform: translateY(-16px) scale(0.96); } to { opacity: 1; transform: translateY(0) scale(1); } }
+        .modal { display: none; position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); backdrop-filter: blur(8px); z-index: 1000; align-items: center; justify-content: center; padding: 1rem; opacity: 0; transition: opacity 0.25s ease; }
+        .modal.show { display: flex; opacity: 1; }
+        .modal-content { background: var(--bg-elevated); backdrop-filter: blur(24px); border-radius: var(--radius-lg); width: 100%; max-width: 480px; padding: 1.25rem; position: relative; box-shadow: var(--shadow-lg); border: 1px solid var(--border-color); max-height: 88vh; overflow-y: auto; transform: scale(0.96); transition: transform 0.3s ease; }
+        .modal.show .modal-content { transform: scale(1); }
+        .close-btn { position: absolute; left: 1rem; top: 1rem; border: none; background: var(--bg-body); color: var(--text-muted); width: 28px; height: 28px; border-radius: 50%; cursor: pointer; font-size: 0.9rem; display: flex; align-items: center; justify-content: center; z-index: 2; }
+        .empty-state { text-align: center; padding: 2rem 1rem; color: var(--text-muted); }
+        .empty-state i { font-size: 2rem; margin-bottom: 0.5rem; opacity: 0.4; }
+        footer { background: var(--bg-elevated); border-top: 1px solid var(--border-color); padding: 1rem; text-align: center; margin-top: auto; }
+        footer p { font-size: 0.78rem; color: var(--text-muted); }
+    </style>
+</head>
+<body>
+
+    <div id="light-rays-container"><canvas id="light-rays-canvas"></canvas></div>
+    <div id="toast-container"></div>
+
+    <div class="app-wrapper">
+        <header>
+            <div class="header-inner">
+                <div class="header-brand">
+                    <i class="fas fa-book-open"></i>
+                    <h1>مكتبة الجوراني</h1>
+                    <span>النواقص</span>
+                </div>
+                <div class="header-actions">
+                    <button class="theme-toggle-btn" id="theme-toggle"><i class="fas fa-moon"></i></button>
+                </div>
+            </div>
+            <div class="nav-tabs-wrapper">
+                <button class="nav-tab active" data-tab="inventory"><i class="fas fa-boxes-stacked"></i> إدارة النواقص</button>
+                <button class="nav-tab" data-tab="archive"><i class="fas fa-box-archive"></i> الأرشيف</button>
+                <button class="nav-tab" data-tab="history"><i class="fas fa-clock-rotate-left"></i> سجل الحركة</button>
+                <button class="nav-tab" data-tab="pdf-tools"><i class="fas fa-file-pdf"></i> ماسح الصور إلى PDF</button>
+            </div>
+        </header>
+
+        <main>
+            <!-- Tab 1: Inventory -->
+            <section id="tab-inventory" class="tab-content active">
+                <section class="dashboard">
+                    <div class="stat-card"><h3><i class="fas fa-triangle-exclamation"></i> النواقص المسجلة</h3><p id="pending-count">0</p></div>
+                    <div class="stat-card"><h3><i class="fas fa-cubes-stacked"></i> إجمالي القطع الناقصة</h3><p id="total-shortage">0</p></div>
+                    <div class="stat-card chart-card">
+                        <div class="chart-info"><h3><i class="fas fa-chart-pie"></i> النواقص حسب القسم</h3><p style="font-size:0.75rem;color:var(--text-muted);margin-top:3px;">توزيع سريع</p></div>
+                        <div class="chart-container"><canvas id="categoryChart"></canvas></div>
+                    </div>
+                </section>
+
+                <div class="content-wrapper">
+                    <section class="panel" id="add-task-panel">
+                        <h2 class="panel-title"><i class="fas fa-plus-circle"></i> تسجيل نقص</h2>
+                        <form id="task-form">
+                            <div class="form-group"><label for="product-name">اسم المنتج</label><input type="text" id="product-name" required placeholder="مثال: قلم حبر أزرق"></div>
+                            <div class="form-group"><label for="product-category">القسم</label><select id="product-category" required>
+                                <option value="">اختر القسم</option>
+                                <option value="مكتبة">مكتبة</option>
+                                <option value="مستحضرات تجميل">مستحضرات تجميل</option>
+                                <option value="أخرى">أخرى</option>
+                            </select></div>
+                            <div class="form-row">
+                                <div class="form-group"><label for="product-quantity">الكمية المتوفرة حالياً</label><input type="number" id="product-quantity" min="0" value="0" required></div>
+                                <div class="form-group"><label for="product-min">الحد الأدنى المطلوب</label><input type="number" id="product-min" min="1" value="5" required></div>
+                            </div>
+                            <div class="form-group">
+                                <label><i class="fas fa-paperclip"></i> إرفاق صورة أو ملف</label>
+                                <div class="file-upload-zone">
+                                    <input type="file" id="local-file" accept=".pdf, image/*">
+                                    <div class="upload-placeholder"><i class="fas fa-cloud-upload-alt fa-lg"></i><span>اختر ملف أو صورة</span></div>
+                                </div>
+                                <div class="attachment-preview-box" id="attachment-preview-box">
+                                    <img id="attachment-thumb" class="attachment-thumbnail" src="" alt="preview" style="display:none;">
+                                    <div id="attachment-badge" class="attachment-icon-badge" style="display:none;"><i class="fas fa-file-pdf"></i></div>
+                                    <div class="attachment-details"><p id="attachment-file-name">filename.pdf</p><span id="attachment-file-size">0 KB</span></div>
+                                    <button type="button" class="remove-attachment-btn" id="remove-file-btn"><i class="fas fa-times"></i></button>
+                                </div>
+                            </div>
+                            <div class="form-group"><label for="notes">ملاحظات</label><textarea id="notes" rows="2" placeholder="تفاصيل إضافية..."></textarea></div>
+                            <button type="submit" class="btn-submit"><i class="fas fa-save"></i> حفظ النقص</button>
+                        </form>
+                    </section>
+
+                    <section class="panel" id="tasks-list-panel">
+                        <div class="tools-bar">
+                            <button class="btn-tool excel" onclick="exportXLSX()"><i class="fas fa-file-excel"></i> تصدير Excel</button>
+                            <button class="btn-tool pdf" onclick="exportInventoryPDF()"><i class="fas fa-file-pdf"></i> تصدير PDF (للطباعة)</button>
+                        </div>
+                        <div class="table-responsive" id="table-to-export">
+                            <table class="tasks-table">
+                                <thead>
+                                    <tr><th>المنتج</th><th>القسم</th><th>المتوفر</th><th>الحد الأدنى</th><th>النقص</th><th>الإجراءات</th></tr>
+                                </thead>
+                                <tbody id="tasks-container"></tbody>
+                            </table>
+                        </div>
+                        <div id="no-tasks-message" class="empty-state" style="display:none;"><i class="fas fa-folder-open"></i><p>لا توجد نواقص مسجلة.</p></div>
+                    </section>
+                </div>
+            </section>
+
+            <!-- Tab 2: Archive -->
+            <section id="tab-archive" class="tab-content">
+                <div class="panel">
+                    <h2 class="panel-title"><i class="fas fa-box-archive"></i> أرشيف المنتجات المحذوفة</h2>
+                    <div class="table-responsive">
+                        <table class="tasks-table">
+                            <thead>
+                                <tr><th>المنتج</th><th>القسم</th><th>الكمية</th><th>تاريخ النقل للأرشيف</th><th>الإجراءات</th></tr>
+                            </thead>
+                            <tbody id="archive-container"></tbody>
+                        </table>
+                    </div>
+                    <div id="no-archive-message" class="empty-state" style="display:none;"><i class="fas fa-folder-open"></i><p>الأرشيف فارغ.</p></div>
+                </div>
+            </section>
+
+            <!-- Tab 3: History -->
+            <section id="tab-history" class="tab-content">
+                <div class="panel">
+                    <h2 class="panel-title"><i class="fas fa-clock-rotate-left"></i> سجل الحركة</h2>
+                    <div class="table-responsive">
+                        <table class="tasks-table">
+                            <thead>
+                                <tr><th>التاريخ والوقت</th><th>الإجراء</th><th>المنتج</th><th>التفاصيل</th></tr>
+                            </thead>
+                            <tbody id="history-container"></tbody>
+                        </table>
+                    </div>
+                    <div id="no-history-message" class="empty-state" style="display:none;"><i class="fas fa-clock"></i><p>لا يوجد سجل حركة بعد.</p></div>
+                </div>
+            </section>
+
+            <!-- Tab 4: PDF Tools -->
+            <section id="tab-pdf-tools" class="tab-content">
+                <div class="panel pdf-panel">
+                    <h2 class="panel-title"><i class="fas fa-file-pdf"></i> ماسح الصور إلى PDF</h2>
+                    <p class="pdf-intro">أضف صور المستندات، وسيقوم النظام تلقائياً بكشف حدود الورقة، تصحيح المنظور، تحسين الوضوح، وإخراج كل صورة في صفحة A4 نظيفة وجاهزة للطباعة.</p>
+                    
+                    <div class="pdf-upload-zone" style="position:relative;border:1.5px dashed var(--border-color);border-radius:var(--radius-sm);padding:0.9rem;text-align:center;background:var(--bg-body);cursor:pointer;">
+                        <input type="file" id="pdf-image-input" accept="image/*" multiple style="position:absolute;inset:0;width:100%;height:100%;opacity:0;cursor:pointer;">
+                        <div class="upload-placeholder"><i class="fas fa-images fa-2x"></i><span>اضغط لاختيار صور</span></div>
+                    </div>
+                    
+                    <div id="pdf-empty-state" class="empty-state"><i class="fas fa-images"></i><p>لم تُضف صور بعد.</p></div>
+                    <div id="pdf-preview-list" class="pdf-preview-list"></div>
+                    
+                    <div class="pdf-actions">
+                        <button type="button" class="btn-submit" id="convert-pdf-btn" style="flex:1;"><i class="fas fa-magic"></i> مسح وتحويل تلقائي إلى PDF</button>
+                        <button type="button" class="btn-submit" id="clear-pdf-btn" style="flex:0 0 auto;background:var(--text-muted);box-shadow:none;"><i class="fas fa-trash"></i> مسح الكل</button>
+                    </div>
+                </div>
+            </section>
+        </main>
+
+        <footer><p>&copy; 2026 — جميع الحقوق محفوظة لـ <strong>مكتبة الجوراني</strong></p></footer>
+    </div>
+
+    <!-- Modals -->
+    <div id="notes-modal" class="modal">
+        <div class="modal-content">
+            <button class="close-btn" id="modal-close-btn">&times;</button>
+            <h3 id="modal-title" style="margin-bottom:0.6rem;color:var(--primary);"></h3>
+            <p id="modal-notes-text" style="white-space:pre-wrap;line-height:1.6;font-size:0.85rem;"></p>
+            <div id="file-attachment-info" style="margin-top:12px;display:none;">
+                <hr style="border-color:var(--border-color);margin:10px 0;">
+                <a id="download-link" class="btn-submit" download style="margin:6px 0;text-decoration:none;"><i class="fas fa-download"></i> تحميل المرفق</a>
+                <iframe id="file-preview" style="width:100%;height:280px;border:1px solid var(--border-color);border-radius:8px;margin-top:6px;display:none;"></iframe>
+            </div>
+        </div>
+    </div>
+    
+    <div id="delete-modal" class="modal">
+        <div class="modal-content" style="max-width:360px;text-align:center;">
+            <div style="font-size:2.2rem;color:var(--danger);margin-bottom:0.3rem;"><i class="fas fa-exclamation-circle"></i></div>
+            <h3 style="margin-bottom:0.3rem;">تأكيد الحذف</h3>
+            <p style="color:var(--text-muted);margin-bottom:1rem;font-size:0.82rem;">هل أنت متأكد من نقل هذا المنتج إلى الأرشيف؟</p>
+            <div style="display:flex;gap:6px;">
+                <button id="confirm-delete-btn" class="btn-submit" style="background:var(--danger);">نقل للأرشيف</button>
+                <button id="cancel-delete-btn" class="btn-submit" style="background:var(--text-muted);">إلغاء</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Libraries -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+
+    <script>
+        // تسجيل Service Worker ليعمل الموقع بدون إنترنت
+        if ('serviceWorker' in navigator) {
+            window.addEventListener('load', () => {
+                navigator.serviceWorker.register('sw.js')
+                    .then(reg => console.log('Service Worker Registered'))
+                    .catch(err => console.log('Service Worker registration failed', err));
+            });
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            /* ==================== LIGHT RAYS (WebGL) ==================== */
+            (function initLightRays() {
+                const canvas = document.getElementById('light-rays-canvas');
+                if (!canvas) return;
+                const gl = canvas.getContext('webgl2', { alpha: true, premultipliedAlpha: true, antialias: false, depth: false, stencil: false });
+                if (!gl) return;
+
+                const VERTEX = `#version 300 es
+                const vec2 corners[3] = vec2[3](vec2(-1.0,-1.0), vec2(3.0,-1.0), vec2(-1.0,3.0));
+                void main(){ gl_Position = vec4(corners[gl_VertexID],0.0,1.0); }`;
+
+                const FRAGMENT = `#version 300 es
+                precision highp float;
+                uniform vec2 uResolution; uniform float uScale; uniform float uTime; uniform vec2 uSource; uniform vec2 uAim;
+                uniform float uReach; uniform vec3 uColor; uniform float uSpread; uniform float uLength; uniform float uFade;
+                uniform float uSaturation; uniform float uPulsating; uniform float uNoise; uniform float uDistortion;
+                uniform float uDensity; uniform float uSharpness; uniform float uGlow; uniform float uHaze; uniform float uAtmosphere;
+                uniform float uIntensity; uniform vec4 uShadow; uniform vec4 uPulses[4]; uniform vec2 uIntro; uniform float uLight; uniform float uOpacity;
+                out vec4 fragColor;
+
+                float hash(vec2 p){ p=fract(p*vec2(123.34,456.21)); p+=dot(p,p+45.32); return fract(p.x*p.y); }
+                float valueNoise(vec2 p){ vec2 i=floor(p); vec2 f=p-i; vec2 w=f*f*f*(f*(f*6.0-15.0)+10.0); return mix(mix(hash(i),hash(i+vec2(1.0,0.0)),w.x),mix(hash(i+vec2(0.0,1.0)),hash(i+vec2(1.0,1.0)),w.x),w.y); }
+                float shape(float strength, float width){ float edge=max(mix(0.5,0.08,uSharpness),width); return mix(strength,smoothstep(0.62-edge,0.62+edge,strength),uSharpness); }
+
+                void main(){
+                    vec2 coord = vec2(gl_FragCoord.x, uResolution.y - gl_FragCoord.y) / uScale;
+                    vec2 delta = coord - uSource; float distance = length(delta);
+                    vec2 dir = delta / max(distance, 1e-4);
+                    float cosAngle = dot(dir, uAim);
+                    float angle = cosAngle + uDistortion * sin(uTime * 2.0 + distance * 0.02) * 0.2;
+                    float slope = fwidth(angle);
+                    float depth = distance / uReach;
+
+                    float source = exp(-depth * depth * 9.0) * 0.9 + exp(-depth * 3.2) * 0.25;
+                    float glowLight = uGlow * source * smoothstep(-0.2, 0.6, cosAngle);
+                    float spread = pow(max(angle, 0.0), 1.0 / uSpread);
+                    float lengthFalloff = clamp(1.0 - distance / (uReach * uLength), 0.0, 1.0);
+                    float fadeFalloff = clamp(1.0 - distance / (uReach * uFade), 0.5, 1.0);
+                    float envelope = spread * lengthFalloff * fadeFalloff;
+                    float reveal = uIntensity * uIntro.y * (1.0 - smoothstep(uIntro.x - 0.35, uIntro.x, depth));
+                    if ((envelope * 1.6 + glowLight) * reveal < 0.0015){ fragColor = vec4(0.0); return; }
+
+                    float phaseA = angle * 36.2214 * uDensity + uTime * 1.5;
+                    float phaseB = -angle * 21.11349 * uDensity + uTime * 1.5;
+                    float phaseC = angle * 22.3991 * uDensity + uTime * 1.1;
+                    float phaseD = -angle * 18.0234 * uDensity + uTime * 1.1;
+                    float strengthA = clamp(0.75 + 0.15 * sin(phaseA) + 0.2 * cos(phaseB), 0.0, 1.0);
+                    float strengthB = clamp(0.75 + 0.15 * sin(phaseC) + 0.2 * cos(phaseD), 0.0, 1.0);
+                    float widthA = abs(0.15 * 36.2214 * cos(phaseA) + 0.2 * 21.11349 * sin(phaseB)) * uDensity * slope;
+                    float widthB = abs(0.15 * 22.3991 * cos(phaseC) + 0.2 * 18.0234 * sin(phaseD)) * uDensity * slope;
+                    float pulseA = uPulsating > 0.5 ? 0.8 + 0.2 * sin(uTime * 4.5) : 1.0;
+                    float pulseB = uPulsating > 0.5 ? 0.8 + 0.2 * sin(uTime * 3.3) : 1.0;
+                    float rayLight = envelope * (0.5 * shape(strengthA, widthA) * pulseA + 0.4 * shape(strengthB, widthB) * pulseB);
+
+                    if (uHaze > 0.0){
+                        float around = atan(uAim.x * dir.y - uAim.y * dir.x, cosAngle);
+                        vec2 drift = vec2(around * 2.2 + uTime * 0.035, depth * 2.6 - uTime * 0.11);
+                        float fog = 0.65 * valueNoise(drift * vec2(3.0, 1.0)) + 0.35 * valueNoise(drift * vec2(7.0, 2.3) + 4.1);
+                        rayLight *= mix(1.0, 0.25 + 1.2 * fog, uHaze);
+                    }
+
+                    if (uShadow.z > 0.0){
+                        vec2 toCursor = uShadow.xy - uSource; float cursorDistance = length(toCursor);
+                        float along = dot(delta, toCursor) / max(cursorDistance * cursorDistance, 1e-4);
+                        float side = abs(delta.x * toCursor.y - delta.y * toCursor.x) / max(cursorDistance, 1e-4);
+                        float trail = max(along - 1.0, 0.0);
+                        float width = uShadow.w * along + 0.22 * trail * cursorDistance;
+                        float behind = smoothstep(0.97, 1.25, along) * exp(-trail * 1.1);
+                        float shade = (1.0 - smoothstep(width * 0.3, width * 1.6, side)) * behind;
+                        rayLight *= 1.0 - uShadow.z * 0.62 * shade;
+                    }
+
+                    float boost = 0.0;
+                    for (int i = 0; i < 4; i++){ vec4 wave = uPulses[i]; if (wave.z <= 0.0) continue; float x = (depth - wave.x) / wave.y; boost += wave.z * exp(-x * x); }
+                    float light = (rayLight * (1.0 + boost) + glowLight) * reveal;
+
+                    if (uNoise > 0.0){ float n = fract(sin(dot(coord * 0.02 + uTime * 0.1, vec2(12.9898, 78.233))) * 43758.5453123); light *= 1.0 - uNoise + uNoise * n; }
+
+                    float near = clamp(1.2 - distance / (uResolution.y / uScale), 0.0, 1.0);
+                    vec3 tint = mix(vec3(0.9), vec3(0.1, 0.3, 0.5) + near * vec3(0.8, 0.6, 0.5), uAtmosphere);
+                    float gray = dot(tint, vec3(0.299, 0.587, 0.114));
+                    vec3 hue = max(mix(vec3(gray), tint, uSaturation), 0.0) * uColor;
+
+                    float grain = (fract(52.9829189 * fract(dot(gl_FragCoord.xy, vec2(0.06711056, 0.00583715)))) - 0.5) / 255.0;
+                    if (uLight > 0.5){ vec3 color = hue * light; float energy = max(color.r, max(color.g, color.b)); vec3 tone = clamp(1.0 - (1.0 - hue / max(max(hue.r, max(hue.g, hue.b)), 1e-4)) * 1.8, 0.0, 1.0); float warm = clamp((min(tone.r, tone.g) - tone.b) * 2.0, 0.0, 1.0); vec3 ink = tone * (mix(0.66, 0.94, warm) - 0.1 * smoothstep(0.4, 1.2, energy)); float density = clamp(0.82 * (1.0 - exp(-1.5 * energy * energy)) * uOpacity + grain, 0.0, 1.0); fragColor = vec4(ink * density, density); return; }
+                    float level = light < 0.75 ? light : 0.75 + 0.25 * (1.0 - exp(-(light - 0.75) / 0.25));
+                    float top = max(hue.r, max(hue.g, hue.b));
+                    hue = mix(hue, vec3(top), smoothstep(0.8, 1.0, level) * 0.45);
+                    vec3 shown = clamp(hue * level, 0.0, 1.0) * level;
+                    fragColor = vec4(clamp(shown + grain, 0.0, level) * uOpacity, level * uOpacity);
+                }`;
+
+                function compile(gl, type, src) { const s = gl.createShader(type); gl.shaderSource(s, src); gl.compileShader(s); if (!gl.getShaderParameter(s, gl.COMPILE_STATUS)) { console.error(gl.getShaderInfoLog(s)); gl.deleteShader(s); return null; } return s; }
+                const vs = compile(gl, gl.VERTEX_SHADER, VERTEX);
+                const fs = compile(gl, gl.FRAGMENT_SHADER, FRAGMENT);
+                if (!vs || !fs) return;
+                const program = gl.createProgram(); gl.attachShader(program, vs); gl.attachShader(program, fs); gl.linkProgram(program);
+                if (!gl.getProgramParameter(program, gl.LINK_STATUS)) { console.error(gl.getProgramInfoLog(program)); return; }
+                gl.deleteShader(vs); gl.deleteShader(fs);
+
+                const uniforms = {}; const count = gl.getProgramParameter(program, gl.ACTIVE_UNIFORMS);
+                for (let i = 0; i < count; i++) { const info = gl.getActiveUniform(program, i); if (info) uniforms[info.name.replace(/\[0\]$/, '')] = gl.getUniformLocation(program, info.name); }
+
+                const vao = gl.createVertexArray();
+                const state = { time: 0, pointer: { x: 0.5, y: 0.5, inside: false, seen: false }, aim: { x: 0.5, y: 0.5 }, shade: { x: 0.5, y: 0.5, presence: 0 }, pulses: [] };
+                const pulseData = new Float32Array(16);
+                let raf = 0, last = 0, opening = 0;
+
+                function resize() {
+                    const rect = canvas.parentElement.getBoundingClientRect();
+                    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+                    const w = Math.max(1, rect.width), h = Math.max(1, rect.height);
+                    if (canvas.width !== w * dpr || canvas.height !== h * dpr) { canvas.width = w * dpr; canvas.height = h * dpr; }
+                }
+
+                function frame(now) {
+                    raf = 0;
+                    const dt = Math.min((now - last) / 1000 || 0, 0.05); last = now;
+                    state.time += dt;
+                    if (opening < 1) opening = Math.min(1, opening + dt / 1.8);
+                    const steer = 1 - Math.exp(-dt / 0.2);
+                    const aimX = state.pointer.seen ? state.pointer.x : 0.5, aimY = state.pointer.seen ? state.pointer.y : 0.5;
+                    state.aim.x += (aimX - state.aim.x) * steer; state.aim.y += (aimY - state.aim.y) * steer;
+                    const glide = 1 - Math.exp(-dt / 0.08);
+                    state.shade.x += (state.pointer.x - state.shade.x) * glide; state.shade.y += (state.pointer.y - state.shade.y) * glide;
+                    const shading = state.pointer.inside;
+                    state.shade.presence += ((shading ? 1 : 0) - state.shade.presence) * (1 - Math.exp(-dt / (shading ? 0.25 : 0.5)));
+
+                    for (let i = state.pulses.length - 1; i >= 0; i--) { state.pulses[i].age += dt; if (state.pulses[i].age >= 2) state.pulses.splice(i, 1); }
+                    pulseData.fill(0);
+                    state.pulses.forEach((p, i) => { const t = p.age; pulseData[i*4]=0.05+t*1.05; pulseData[i*4+1]=0.14+t*0.14; pulseData[i*4+2]=0.9*(1-Math.pow(1-Math.min(t/0.15,1),3))*(1-(1-Math.pow(1-Math.min(t/2,1),3))); });
+
+                    const w = canvas.width, h = canvas.height;
+                    const sourceX = 0.5 * w, sourceY = -0.2 * h;
+                    let dirX = 0, dirY = 1;
+                    if (state.pointer.seen) {
+                        const mx = state.aim.x * w - sourceX, my = state.aim.y * h - sourceY;
+                        const ml = Math.hypot(mx, my) || 1;
+                        dirX = 0 + (mx / ml - 0) * 0.1; dirY = 1 + (my / ml - 1) * 0.1;
+                        const bl = Math.hypot(dirX, dirY) || 1; dirX /= bl; dirY /= bl;
+                    }
+
+                    gl.viewport(0, 0, w, h); gl.clearColor(0, 0, 0, 0); gl.clear(gl.COLOR_BUFFER_BIT);
+                    gl.useProgram(program); gl.bindVertexArray(vao);
+                    const u = uniforms;
+                    gl.uniform2f(u.uResolution, w, h); gl.uniform1f(u.uScale, w / canvas.parentElement.getBoundingClientRect().width);
+                    gl.uniform1f(u.uTime, state.time); gl.uniform2f(u.uSource, sourceX, sourceY); gl.uniform2f(u.uAim, dirX, dirY);
+                    gl.uniform1f(u.uReach, Math.max(w, h)); gl.uniform3f(u.uColor, 0.6, 0.8, 1.0);
+                    gl.uniform1f(u.uSpread, 0.5); gl.uniform1f(u.uLength, 3.0); gl.uniform1f(u.uFade, 1.0);
+                    gl.uniform1f(u.uSaturation, 1.0); gl.uniform1f(u.uPulsating, 0.0); gl.uniform1f(u.uNoise, 0.0);
+                    gl.uniform1f(u.uDistortion, 0.0); gl.uniform1f(u.uDensity, 1.0); gl.uniform1f(u.uSharpness, 0.35);
+                    gl.uniform1f(u.uGlow, 0.6); gl.uniform1f(u.uHaze, 0.25); gl.uniform1f(u.uAtmosphere, 1.0);
+                    gl.uniform1f(u.uIntensity, 1.0); gl.uniform4f(u.uShadow, state.shade.x * w, state.shade.y * h, state.shade.presence, 16);
+                    gl.uniform4fv(u.uPulses, pulseData); gl.uniform2f(u.uIntro, (1-Math.pow(1-opening,3)) * 2.6, 1-Math.pow(1-Math.min(opening/0.5,1),3));
+                    gl.uniform1f(u.uLight, 0); gl.uniform1f(u.uOpacity, 1.0);
+                    gl.drawArrays(gl.TRIANGLES, 0, 3);
+
+                    const settling = Math.abs(state.aim.x - aimX) > 1e-4 || Math.abs(state.aim.y - aimY) > 1e-4 || state.shade.presence > 1e-3 || state.pulses.length > 0;
+                    if (opening < 1 || settling || state.pointer.inside) raf = requestAnimationFrame(frame);
+                }
+
+                function wake() { if (!raf) { last = performance.now(); raf = requestAnimationFrame(frame); } }
+
+                window.addEventListener('pointermove', e => {
+                    const rect = canvas.getBoundingClientRect();
+                    const x = (e.clientX - rect.left) / Math.max(1, rect.width);
+                    const y = (e.clientY - rect.top) / Math.max(1, rect.height);
+                    if (!state.pointer.inside && x >= 0 && x <= 1 && y >= 0 && y <= 1) { state.shade.x = x; state.shade.y = y; }
+                    state.pointer.x = x; state.pointer.y = y; state.pointer.inside = x >= 0 && x <= 1 && y >= 0 && y <= 1; state.pointer.seen = true;
+                    wake();
+                });
+                window.addEventListener('pointerdown', () => { if (state.pulses.length < 4) state.pulses.push({ age: 0 }); wake(); });
+                window.addEventListener('pointerleave', () => { state.pointer.inside = false; wake(); });
+                window.addEventListener('resize', () => { resize(); wake(); });
+                resize(); wake();
+            })();
+
+            /* ==================== DATA MANAGEMENT ==================== */
+            let products = JSON.parse(localStorage.getItem('jurani_products')) || [];
+            let archive = JSON.parse(localStorage.getItem('jurani_archive')) || [];
+            let history = JSON.parse(localStorage.getItem('jurani_history')) || [];
+            
+            let pendingDeleteId = null, pendingFile = null, myChart = null;
+
+            const productsContainer = document.getElementById('tasks-container');
+            const archiveContainer = document.getElementById('archive-container');
+            const historyContainer = document.getElementById('history-container');
+            
+            const noProductsMessage = document.getElementById('no-tasks-message');
+            const noArchiveMessage = document.getElementById('no-archive-message');
+            const noHistoryMessage = document.getElementById('no-history-message');
+            
+            const themeToggleBtn = document.getElementById('theme-toggle');
+
+            function saveData() { 
+                localStorage.setItem('jurani_products', JSON.stringify(products)); 
+                localStorage.setItem('jurani_archive', JSON.stringify(archive)); 
+                localStorage.setItem('jurani_history', JSON.stringify(history)); 
+            }
+
+            function showToast(msg, type = 'success') { 
+                const c = document.getElementById('toast-container'); 
+                const t = document.createElement('div'); 
+                t.className = `toast ${type}`; 
+                const icon = type === 'success' ? 'fa-circle-check' : 'fa-circle-exclamation'; 
+                t.innerHTML = `<i class="fas ${icon}" style="font-size:1rem;color:var(--${type === 'success' ? 'secondary' : 'danger'});"></i> <span>${msg}</span>`; 
+                c.appendChild(t); 
+                setTimeout(() => { t.style.opacity = '0'; setTimeout(() => t.remove(), 300); }, 3000); 
+            }
+
+            function shortageOf(p) { return Math.max(0, (p.minQuantity || 0) - (p.quantity || 0)); }
+
+            function addHistory(action, productName, details) {
+                history.unshift({ id: Date.now().toString(), date: new Date().toISOString(), action, productName, details });
+                saveData();
+                renderHistory();
+            }
+
+            function formatDate(iso) { 
+                const d = new Date(iso); 
+                return d.toLocaleDateString('ar-EG') + ' ' + d.toLocaleTimeString('ar-EG', {hour:'2-digit',minute:'2-digit'}); 
+            }
+
+            /* ==================== THEME ==================== */
+            const savedTheme = localStorage.getItem('theme');
+            if (savedTheme === 'dark') { document.body.classList.add('dark-theme'); themeToggleBtn.innerHTML = '<i class="fas fa-sun"></i>'; }
+            themeToggleBtn.addEventListener('click', () => { 
+                document.body.classList.toggle('dark-theme'); 
+                const isDark = document.body.classList.contains('dark-theme'); 
+                localStorage.setItem('theme', isDark ? 'dark' : 'light'); 
+                themeToggleBtn.innerHTML = isDark ? '<i class="fas fa-sun"></i>' : '<i class="fas fa-moon"></i>'; 
+                if (myChart) updateChart(); 
+            });
+
+            /* ==================== TABS ==================== */
+            document.querySelectorAll('.nav-tab').forEach(tab => tab.addEventListener('click', () => { 
+                const target = tab.dataset.tab; 
+                document.querySelectorAll('.nav-tab').forEach(t=>t.classList.remove('active')); 
+                document.querySelectorAll('.tab-content').forEach(c=>c.classList.remove('active')); 
+                tab.classList.add('active'); 
+                document.getElementById(`tab-${target}`).classList.add('active'); 
+            }));
+
+            /* ==================== FILE ATTACHMENT ==================== */
+            const localFileInput = document.getElementById('local-file');
+            localFileInput.addEventListener('change', e => { 
+                if (!e.target.files.length) return; 
+                const f = e.target.files[0]; 
+                if (f.size > 3*1024*1024) { showToast("حجم الملف كبير (الحد 3MB).","danger"); localFileInput.value=''; return; } 
+                const r = new FileReader(); 
+                r.onload = () => { 
+                    pendingFile = {base64:r.result,name:f.name,type:f.type}; 
+                    document.getElementById('attachment-file-name').textContent=f.name; 
+                    document.getElementById('attachment-file-size').textContent=(f.size/1024).toFixed(1)+" KB"; 
+                    if(f.type.startsWith('image/')){
+                        document.getElementById('attachment-thumb').src=r.result;
+                        document.getElementById('attachment-thumb').style.display='block';
+                        document.getElementById('attachment-badge').style.display='none';
+                    }else{
+                        document.getElementById('attachment-thumb').style.display='none';
+                        document.getElementById('attachment-badge').style.display='flex';
+                    } 
+                    document.getElementById('attachment-preview-box').classList.add('active'); 
+                }; 
+                r.readAsDataURL(f); 
+            });
+            document.getElementById('remove-file-btn').addEventListener('click', () => { 
+                pendingFile=null; localFileInput.value=''; document.getElementById('attachment-preview-box').classList.remove('active'); 
+            });
+
+            /* ==================== FORM SUBMIT ==================== */
+            document.getElementById('task-form').addEventListener('submit', e => {
+                e.preventDefault();
+                const qty = parseInt(document.getElementById('product-quantity').value) || 0;
+                const minQty = parseInt(document.getElementById('product-min').value) || 1;
+                
+                const newProduct = {
+                    id: Date.now().toString(),
+                    name: document.getElementById('product-name').value.trim(),
+                    category: document.getElementById('product-category').value,
+                    quantity: qty,
+                    minQuantity: minQty,
+                    notes: document.getElementById('notes').value.trim(),
+                    attachedFile: pendingFile,
+                    createdAt: new Date().toISOString()
+                };
+                
+                products.push(newProduct);
+                addHistory('إضافة', newProduct.name, `الكمية المتوفرة: ${qty}، الحد الأدنى: ${minQty}`);
+                
+                document.getElementById('task-form').reset();
+                pendingFile = null;
+                document.getElementById('attachment-preview-box').classList.remove('active');
+                
+                renderProducts(); updateDashboard();
+                showToast("تم تسجيل النقص بنجاح! 🎉");
+            });
+
+            /* ==================== RENDER PRODUCTS ==================== */
+            function renderProducts() {
+                productsContainer.innerHTML = '';
+                if(!products.length){ noProductsMessage.style.display='block'; return; }
+                noProductsMessage.style.display='none';
+                
+                products.forEach(p => {
+                    const shortage = shortageOf(p);
+                    const tr = document.createElement('tr');
+                    tr.className = 'task-row';
+                    tr.innerHTML = `
+                        <td data-label="المنتج"><span class="course-title">${p.name}</span></td>
+                        <td data-label="القسم"><span class="type-badge">${p.category}</span></td>
+                        <td data-label="المتوفر">${p.quantity}</td>
+                        <td data-label="الحد الأدنى">${p.minQuantity}</td>
+                        <td data-label="النقص"><span class="shortage-badge ${shortage>0?'':'zero'}">${shortage}</span></td>
+                        <td data-label="الإجراءات"><div class="actions-cell">
+                            ${(p.notes || p.attachedFile)?`<button class="btn-icon btn-notes" data-id="${p.id}"><i class="fas fa-paperclip"></i></button>`:''}
+                            <button class="btn-icon btn-delete" data-id="${p.id}"><i class="fas fa-trash-alt"></i></button>
+                        </div></td>`;
+                    productsContainer.appendChild(tr);
+                });
+                bindActions();
+            }
+
+            function bindActions() {
+                document.querySelectorAll('.btn-delete').forEach(b=>b.addEventListener('click', e=>{ pendingDeleteId=e.currentTarget.dataset.id; document.getElementById('delete-modal').classList.add('show'); }));
+                document.querySelectorAll('.btn-notes').forEach(b=>b.addEventListener('click', e=>{
+                    const id=e.currentTarget.dataset.id; const p=products.find(x=>x.id===id); if(!p)return;
+                    document.getElementById('file-attachment-info').style.display='none';
+                    document.getElementById('file-preview').style.display='none';
+                    document.getElementById('modal-notes-text').innerHTML='';
+                    document.getElementById('modal-title').innerHTML=`<i class="fas fa-sticky-note"></i> التفاصيل: ${p.name}`;
+                    if(p.notes) document.getElementById('modal-notes-text').textContent=p.notes;
+                    if(p.attachedFile){
+                        document.getElementById('file-attachment-info').style.display='block';
+                        document.getElementById('download-link').href=p.attachedFile.base64;
+                        document.getElementById('download-link').download=p.attachedFile.name;
+                        if(p.attachedFile.type.includes('pdf')||p.attachedFile.type.includes('image')){
+                            document.getElementById('file-preview').src=p.attachedFile.base64;
+                            document.getElementById('file-preview').style.display='block';
+                        }
+                    }
+                    document.getElementById('notes-modal').classList.add('show');
+                }));
+            }
+
+            /* ==================== ARCHIVE & DELETE LOGIC ==================== */
+            document.getElementById('confirm-delete-btn').addEventListener('click', () => {
+                if(pendingDeleteId){
+                    const p = products.find(x=>x.id===pendingDeleteId);
+                    if(p){
+                        archive.push({ ...p, archivedAt: new Date().toISOString() });
+                        products = products.filter(x=>x.id!==pendingDeleteId);
+                        addHistory('حذف', p.name, 'تم نقله إلى الأرشيف');
+                        saveData();
+                        showToast("تم النقل إلى الأرشيف.","danger");
+                        renderProducts(); updateDashboard(); renderArchive();
+                    }
+                    pendingDeleteId=null;
+                    document.getElementById('delete-modal').classList.remove('show');
+                }
+            });
+            document.getElementById('cancel-delete-btn').addEventListener('click', ()=>{ pendingDeleteId=null; document.getElementById('delete-modal').classList.remove('show'); });
+            document.getElementById('modal-close-btn').addEventListener('click', ()=>document.getElementById('notes-modal').classList.remove('show'));
+
+            function renderArchive() {
+                archiveContainer.innerHTML = '';
+                if(!archive.length){ noArchiveMessage.style.display='block'; return; }
+                noArchiveMessage.style.display='none';
+                
+                archive.forEach(a => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'task-row';
+                    tr.innerHTML = `
+                        <td data-label="المنتج">${a.name}</td>
+                        <td data-label="القسم"><span class="type-badge">${a.category}</span></td>
+                        <td data-label="الكمية">${a.quantity}</td>
+                        <td data-label="تاريخ النقل">${formatDate(a.archivedAt)}</td>
+                        <td data-label="الإجراءات"><div class="actions-cell">
+                            <button class="btn-icon btn-restore" onclick="restoreArchive('${a.id}')" title="استعادة"><i class="fas fa-undo"></i></button>
+                            <button class="btn-icon btn-delete" onclick="deleteArchive('${a.id}')" title="حذف نهائي"><i class="fas fa-trash-alt"></i></button>
+                        </div></td>`;
+                    archiveContainer.appendChild(tr);
+                });
+            }
+
+            window.restoreArchive = id => {
+                const item = archive.find(a => a.id === id);
+                if (item) {
+                    const { archivedAt, ...rest } = item;
+                    products.push(rest);
+                    archive = archive.filter(a => a.id !== id);
+                    addHistory('استعادة', rest.name, 'تم استعادته من الأرشيف');
+                    saveData();
+                    renderArchive(); renderProducts(); updateDashboard();
+                    showToast('تم استعادة المنتج.');
+                }
+            };
+
+            window.deleteArchive = id => {
+                if(confirm('هل أنت متأكد من الحذف النهائي من الأرشيف؟')) {
+                    const item = archive.find(a => a.id === id);
+                    archive = archive.filter(a => a.id !== id);
+                    if(item) addHistory('حذف نهائي', item.name, 'تم حذفه نهائياً من الأرشيف');
+                    saveData();
+                    renderArchive();
+                    showToast('تم الحذف النهائي.','danger');
+                }
+            };
+
+            /* ==================== RENDER HISTORY ==================== */
+            function renderHistory() {
+                historyContainer.innerHTML = '';
+                if(!history.length){ noHistoryMessage.style.display='block'; return; }
+                noHistoryMessage.style.display='none';
+                
+                history.slice(0, 100).forEach(h => {
+                    const tr = document.createElement('tr');
+                    tr.className = 'task-row';
+                    tr.innerHTML = `
+                        <td data-label="التاريخ">${formatDate(h.date)}</td>
+                        <td data-label="الإجراء"><span class="type-badge">${h.action}</span></td>
+                        <td data-label="المنتج">${h.productName}</td>
+                        <td data-label="التفاصيل">${h.details || ''}</td>`;
+                    historyContainer.appendChild(tr);
+                });
+            }
+
+            /* ==================== DASHBOARD ==================== */
+            function updateDashboard() {
+                const total = products.length;
+                const totalShortage = products.reduce((s,p)=>s+shortageOf(p),0);
+                document.getElementById('pending-count').textContent = total;
+                document.getElementById('total-shortage').textContent = totalShortage;
+                updateChart();
+            }
+
+            function updateChart() {
+                if(!window.Chart) return;
+                const counts={};
+                products.forEach(p=>{ counts[p.category] = (counts[p.category]||0)+1; });
+                const l=Object.keys(counts), d=Object.values(counts);
+                const bg=['#007aff','#34c759','#ff9500','#5ac8fa','#af52de','#ff2d55'];
+                if(myChart)myChart.destroy();
+                myChart=new Chart(document.getElementById('categoryChart').getContext('2d'),{
+                    type:'doughnut',data:{labels:l.length?l:['لا يوجد'],datasets:[{data:d.length?d:[1],backgroundColor:l.length?bg:['#cbd5e1'],borderWidth:0}]},
+                    options:{cutout:'70%',plugins:{legend:{display:false}},responsive:true,maintainAspectRatio:false}
+                });
+            }
+
+            /* ==================== EXPORT EXCEL ==================== */
+            window.exportXLSX = () => {
+                if(!products.length) return showToast("لا توجد بيانات.","danger");
+                
+                const productsData = [
+                    ["اسم المنتج", "القسم", "الكمية المتوفرة", "الحد الأدنى", "النقص", "ملاحظات"]
+                ];
+                products.forEach(p => {
+                    productsData.push([p.name, p.category, p.quantity, p.minQuantity, shortageOf(p), p.notes || ""]);
+                });
+                
+                const categoriesData = [
+                    ["الأقسام"],
+                    ["مكتبة"],
+                    ["مستحضرات تجميل"],
+                    ["أخرى"]
+                ];
+
+                const wsProducts = XLSX.utils.aoa_to_sheet(productsData);
+                const wsCategories = XLSX.utils.aoa_to_sheet(categoriesData);
+                
+                const wb = XLSX.utils.book_new();
+                XLSX.utils.book_append_sheet(wb, wsProducts, "المنتجات");
+                XLSX.utils.book_append_sheet(wb, wsCategories, "الأقسام");
+                
+                wb.Workbook = { Views: [{ RTL: true }] };
+                XLSX.writeFile(wb, `نواقص_مكتبة_الجوراني_${Date.now()}.xlsx`);
+                showToast("تم تصدير Excel بنجاح.");
+            };
+
+            /* ==================== EXPORT PDF (Excel Style) ==================== */
+            window.exportInventoryPDF = () => {
+                if(!products.length) return showToast("لا توجد بيانات.","danger");
+                
+                // إنشاء حاوية مخفية بتصميم جدول إكسيل للطباعة
+                const printDiv = document.createElement('div');
+                printDiv.style.position = 'absolute';
+                printDiv.style.left = '-9999px';
+                printDiv.style.top = '0';
+                printDiv.style.width = '800px';
+                printDiv.style.backgroundColor = '#ffffff';
+                printDiv.style.padding = '40px';
+                printDiv.style.direction = 'rtl';
+                printDiv.style.fontFamily = "'Inter', 'Tahoma', sans-serif";
+
+                let rowsHtml = '';
+                products.forEach(p => {
+                    rowsHtml += `
+                        <tr>
+                            <td style="border:1px solid #000; padding:10px; font-size:14px;">${p.name}</td>
+                            <td style="border:1px solid #000; padding:10px; font-size:14px;">${p.category}</td>
+                            <td style="border:1px solid #000; padding:10px; text-align:center; font-size:14px;">${p.quantity}</td>
+                            <td style="border:1px solid #000; padding:10px; text-align:center; font-size:14px;">${p.minQuantity}</td>
+                            <td style="border:1px solid #000; padding:10px; text-align:center; font-size:14px; font-weight:bold; color:#d32f2f;">${shortageOf(p)}</td>
+                            <td style="border:1px solid #000; padding:10px; font-size:14px;">${p.notes || ''}</td>
+                        </tr>
+                    `;
+                });
+
+                printDiv.innerHTML = `
+                    <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px; border-bottom: 2px solid #000; padding-bottom: 15px;">
+                        <div>
+                            <h1 style="margin:0; font-size:28px; color:#000;">مكتبة الجوراني</h1>
+                            <p style="margin:8px 0 0 0; font-size:16px; color:#333;">تقرير النواقص - ${new Date().toLocaleDateString('ar-EG')}</p>
+                        </div>
+                    </div>
+                    <table style="width:100%; border-collapse:collapse; text-align:right;">
+                        <thead>
+                            <tr style="background-color:#e0e0e0;">
+                                <th style="border:1px solid #000; padding:12px; font-size:16px; color:#000;">المنتج</th>
+                                <th style="border:1px solid #000; padding:12px; font-size:16px; color:#000;">القسم</th>
+                                <th style="border:1px solid #000; padding:12px; font-size:16px; color:#000; text-align:center;">المتوفر</th>
+                                <th style="border:1px solid #000; padding:12px; font-size:16px; color:#000; text-align:center;">الحد الأدنى</th>
+                                <th style="border:1px solid #000; padding:12px; font-size:16px; color:#000; text-align:center;">النقص</th>
+                                <th style="border:1px solid #000; padding:12px; font-size:16px; color:#000;">ملاحظات</th>
+                            </tr>
+                        </thead>
+                        <tbody>${rowsHtml}</tbody>
+                    </table>
+                `;
+                document.body.appendChild(printDiv);
+
+                html2canvas(printDiv, { scale: 2, backgroundColor: '#ffffff', useCORS: true }).then(cv => {
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const pw = pdf.internal.pageSize.getWidth();
+                    const ph = (cv.height * pw) / cv.width;
+                    
+                    pdf.addImage(cv.toDataURL('image/png'), 'PNG', 0, 0, pw, ph);
+                    pdf.save(`نواقص_مكتبة_الجوراني_${Date.now()}.pdf`);
+                    document.body.removeChild(printDiv);
+                    showToast("تم تحويل الجدول إلى PDF بنجاح.");
+                }).catch(() => {
+                    document.body.removeChild(printDiv);
+                    showToast("حدث خطأ أثناء تصدير PDF.", "danger");
+                });
+            };
+
+            /* ==================== AUTO IMAGE TO PDF SCANNER ==================== */
+            const pdfImages = []; let pdfId = 0;
+            document.getElementById('pdf-image-input').addEventListener('change', e => {
+                const files = Array.from(e.target.files).filter(f => f.type.startsWith('image/'));
+                if(!files.length) return;
+                files.forEach(f => {
+                    const r = new FileReader();
+                    r.onload = ev => {
+                        pdfImages.push({ id: ++pdfId, src: ev.target.result, name: f.name });
+                        renderPdfPreview();
+                    };
+                    r.readAsDataURL(f);
+                });
+                e.target.value = '';
+            });
+
+            function renderPdfPreview() {
+                const empty = document.getElementById('pdf-empty-state'), list = document.getElementById('pdf-preview-list');
+                if(!pdfImages.length){ empty.style.display='block'; list.innerHTML=''; return; }
+                empty.style.display='none';
+                list.innerHTML = pdfImages.map((img,i) => `
+                    <div class="pdf-preview-item">
+                        <img src="${img.src}" alt="">
+                        <div class="pdf-item-info"><p>${img.name}</p><span>صفحة ${i+1}</span></div>
+                        <div class="pdf-item-actions">
+                            <button class="btn-icon" onclick="movePdfImage(${img.id},-1)" ${i===0?'disabled':''}><i class="fas fa-arrow-up"></i></button>
+                            <button class="btn-icon" onclick="movePdfImage(${img.id},1)" ${i===pdfImages.length-1?'disabled':''}><i class="fas fa-arrow-down"></i></button>
+                            <button class="btn-icon btn-delete" onclick="removePdfImage(${img.id})"><i class="fas fa-trash-alt"></i></button>
+                        </div>
+                    </div>`).join('');
+            }
+            window.movePdfImage = (id,dir) => { const i=pdfImages.findIndex(x=>x.id===id); if(i===-1)return; const ni=i+dir; if(ni<0||ni>=pdfImages.length)return; [pdfImages[i],pdfImages[ni]]=[pdfImages[ni],pdfImages[i]]; renderPdfPreview(); };
+            window.removePdfImage = id => { const i=pdfImages.findIndex(x=>x.id===id); if(i!==-1){ pdfImages.splice(i,1); renderPdfPreview(); } };
+            document.getElementById('clear-pdf-btn').addEventListener('click', () => { pdfImages.length=0; renderPdfPreview(); showToast('تم المسح.'); });
+
+            function computeHomography(from, to) {
+                const A = [], b = [];
+                for (let i = 0; i < 4; i++) {
+                    const { x, y } = from[i], { x: u, y: v } = to[i];
+                    A.push([x, y, 1, 0, 0, 0, -x * u, -y * u]); b.push(u);
+                    A.push([0, 0, 0, x, y, 1, -x * v, -y * v]); b.push(v);
+                }
+                const n = 8;
+                for (let i = 0; i < n; i++) {
+                    let maxRow = i;
+                    for (let k = i + 1; k < n; k++) if (Math.abs(A[k][i]) > Math.abs(A[maxRow][i])) maxRow = k;
+                    [A[i], A[maxRow]] = [A[maxRow], A[i]]; [b[i], b[maxRow]] = [b[maxRow], b[i]];
+                    for (let k = i + 1; k < n; k++) {
+                        const c = -A[k][i] / A[i][i];
+                        for (let j = i; j < n; j++) A[k][j] += c * A[i][j];
+                        b[k] += c * b[i];
+                    }
+                }
+                const x = new Array(n).fill(0);
+                for (let i = n - 1; i >= 0; i--) {
+                    let sum = b[i];
+                    for (let j = i + 1; j < n; j++) sum -= A[i][j] * x[j];
+                    x[i] = sum / A[i][i];
+                }
+                return x;
+            }
+
+            function autoDetectQuad(img) {
+                const maxSide = 320;
+                const scale = Math.min(1, maxSide / Math.max(img.width, img.height));
+                const w = Math.round(img.width * scale), h = Math.round(img.height * scale);
+                const c = document.createElement('canvas'); c.width = w; c.height = h;
+                const ctx = c.getContext('2d');
+                ctx.drawImage(img, 0, 0, w, h);
+                const data = ctx.getImageData(0, 0, w, h).data;
+
+                let br = 0, bg = 0, bb = 0, n = 0;
+                const sample = (x, y) => { const i = (y * w + x) * 4; br += data[i]; bg += data[i+1]; bb += data[i+2]; n++; };
+                for (let x = 0; x < w; x++) { sample(x, 0); sample(x, h - 1); }
+                for (let y = 0; y < h; y++) { sample(0, y); sample(w - 1, y); }
+                br /= n; bg /= n; bb /= n;
+
+                let minX = w, minY = h, maxX = 0, maxY = 0, count = 0;
+                for (let y = 0; y < h; y++) {
+                    for (let x = 0; x < w; x++) {
+                        const i = (y * w + x) * 4;
+                        const dr = data[i] - br, dg = data[i+1] - bg, db = data[i+2] - bb;
+                        if (Math.sqrt(dr*dr + dg*dg + db*db) > 70) {
+                            if (x < minX) minX = x; if (x > maxX) maxX = x;
+                            if (y < minY) minY = y; if (y > maxY) maxY = y;
+                            count++;
+                        }
+                    }
+                }
+                const sx = img.width / w, sy = img.height / h;
+                if (count > w * h * 0.05 && (maxX - minX) > w * 0.15 && (maxY - minY) > h * 0.15) {
+                    return [
+                        { x: minX * sx, y: minY * sy }, { x: (maxX + 1) * sx, y: minY * sy },
+                        { x: (maxX + 1) * sx, y: (maxY + 1) * sy }, { x: minX * sx, y: (maxY + 1) * sy }
+                    ];
+                }
+                const ix = img.width * 0.05, iy = img.height * 0.05;
+                return [
+                    { x: ix, y: iy }, { x: img.width - ix, y: iy },
+                    { x: img.width - ix, y: img.height - iy }, { x: ix, y: img.height - iy }
+                ];
+            }
+
+            function perspectiveTransform(img, quad, outW, outH) {
+                const sw = img.width, sh = img.height;
+                const srcCanvas = document.createElement('canvas');
+                srcCanvas.width = sw; srcCanvas.height = sh;
+                const sctx = srcCanvas.getContext('2d');
+                sctx.drawImage(img, 0, 0);
+                const data = sctx.getImageData(0, 0, sw, sh).data;
+
+                const dstQuad = [{x:0,y:0}, {x:outW,y:0}, {x:outW,y:outH}, {x:0,y:outH}];
+                const H = computeHomography(dstQuad, quad);
+
+                const out = document.createElement('canvas');
+                out.width = outW; out.height = outH;
+                const octx = out.getContext('2d');
+                const outImg = octx.createImageData(outW, outH);
+                const od = outImg.data;
+
+                for (let y = 0; y < outH; y++) {
+                    for (let x = 0; x < outW; x++) {
+                        const den = H[6]*x + H[7]*y + 1;
+                        const u = (H[0]*x + H[1]*y + H[2]) / den;
+                        const v = (H[3]*x + H[4]*y + H[5]) / den;
+                        const idx = (y * outW + x) * 4;
+                        
+                        if (!(u >= 0 && v >= 0 && u < sw - 1 && v < sh - 1)) {
+                            od[idx] = 255; od[idx+1] = 255; od[idx+2] = 255; od[idx+3] = 255; continue;
+                        }
+                        const x0 = Math.floor(u), y0 = Math.floor(v);
+                        const fx = u - x0, fy = v - y0;
+                        const i00 = (y0 * sw + x0) * 4, i10 = (y0 * sw + x0 + 1) * 4;
+                        const i01 = ((y0 + 1) * sw + x0) * 4, i11 = ((y0 + 1) * sw + x0 + 1) * 4;
+
+                        const r = data[i00]*(1-fx)*(1-fy) + data[i10]*fx*(1-fy) + data[i01]*(1-fx)*fy + data[i11]*fx*fy;
+                        const g = data[i00+1]*(1-fx)*(1-fy) + data[i10+1]*fx*(1-fy) + data[i01+1]*(1-fx)*fy + data[i11+1]*fx*fy;
+                        const b = data[i00+2]*(1-fx)*(1-fy) + data[i10+2]*fx*(1-fy) + data[i01+2]*(1-fx)*fy + data[i11+2]*fx*fy;
+                        
+                        let gray = r*0.299 + g*0.587 + b*0.114;
+                        gray = gray > 140 ? Math.min(255, gray * 1.2) : Math.max(0, gray * 0.8);
+
+                        od[idx] = od[idx+1] = od[idx+2] = gray;
+                        od[idx+3] = 255;
+                    }
+                }
+                octx.putImageData(outImg, 0, 0);
+                return out;
+            }
+
+            document.getElementById('convert-pdf-btn').addEventListener('click', async () => {
+                if (!pdfImages.length) return showToast('أضف صوراً أولاً.', 'danger');
+                const btn = document.getElementById('convert-pdf-btn');
+                btn.disabled = true; btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> جاري المعالجة...';
+                
+                try {
+                    const { jsPDF } = window.jspdf;
+                    const pdf = new jsPDF('p', 'mm', 'a4');
+                    const pw = pdf.internal.pageSize.getWidth();
+                    const ph = pdf.internal.pageSize.getHeight();
+                    
+                    for (let i = 0; i < pdfImages.length; i++) {
+                        if (i > 0) pdf.addPage();
+                        
+                        const img = new Image();
+                        img.src = pdfImages[i].src;
+                        await new Promise(res => { img.onload = res; });
+
+                        const quad = autoDetectQuad(img);
+                        const outW = 1240, outH = 1754; // A4 Ratio
+                        const processedCanvas = perspectiveTransform(img, quad, outW, outH);
+                        
+                        const finalCanvas = document.createElement('canvas');
+                        finalCanvas.width = outW; finalCanvas.height = outH;
+                        const fctx = finalCanvas.getContext('2d');
+                        fctx.fillStyle = '#fff'; fctx.fillRect(0, 0, outW, outH);
+                        
+                        const margin = 40;
+                        const availW = outW - margin*2, availH = outH - margin*2;
+                        const r = processedCanvas.width / processedCanvas.height;
+                        let w = availW, h = availW / r;
+                        if (h > availH) { h = availH; w = availH * r; }
+                        
+                        fctx.drawImage(processedCanvas, (outW-w)/2, (outH-h)/2, w, h);
+                        
+                        pdf.addImage(finalCanvas.toDataURL('image/jpeg', 0.9), 'JPEG', 0, 0, pw, ph);
+                    }
+                    pdf.save(`scan_${Date.now()}.pdf`);
+                    showToast('تم إنشاء PDF بنجاح! 🎉');
+                } catch (err) {
+                    console.error(err);
+                    showToast('حدث خطأ أثناء المعالجة.', 'danger');
+                } finally {
+                    btn.disabled = false;
+                    btn.innerHTML = '<i class="fas fa-magic"></i> مسح وتحويل تلقائي إلى PDF';
+                }
+            });
+
+            /* ==================== INIT ==================== */
+            renderProducts(); updateDashboard(); renderArchive(); renderHistory();
+        });
+    </script>
+</body>
+</html>
