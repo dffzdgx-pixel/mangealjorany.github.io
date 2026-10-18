@@ -9,10 +9,16 @@
     <!-- ربط ملف PWA -->
     <link rel="manifest" href="manifest.json">
     
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-title" content="الجوراني">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <link rel="icon" type="image/png" sizes="192x192" href="icons/icon-192.png">
+    <link rel="apple-touch-icon" href="icons/apple-touch-icon.png">
+
+    <!-- الخط والأيقونات محفوظة داخل الموقع لتعمل بدون إنترنت -->
+    <link rel="stylesheet" href="vendor/inter/inter.css">
+    <link rel="stylesheet" href="vendor/fontawesome/css/all.min.css">
     
     <style>
         /* (نفس التصميم الخاص بك، لم يتغير شيء) */
@@ -44,6 +50,9 @@
         .header-actions { display: flex; align-items: center; gap: 10px; }
         .theme-toggle-btn { background: var(--bg-elevated); border: 1px solid var(--border-color); color: var(--text-main); width: 38px; height: 38px; border-radius: 50%; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 1rem; transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1); }
         .theme-toggle-btn:hover { background: var(--primary-light); color: var(--primary); transform: scale(1.08); }
+        .install-btn { display: none; align-items: center; gap: 6px; background: var(--primary); color: #fff; border: none; border-radius: 20px; padding: 7px 14px; font-family: inherit; font-size: 0.78rem; font-weight: 600; cursor: pointer; box-shadow: 0 4px 14px rgba(0, 122, 255, 0.25); white-space: nowrap; transition: transform 0.25s cubic-bezier(0.22, 1, 0.36, 1), background-color 0.25s; }
+        .install-btn.show { display: inline-flex; animation: appleIn 0.5s cubic-bezier(0.22, 1, 0.36, 1); }
+        .install-btn:hover { background: var(--primary-hover); transform: translateY(-1px); }
         .nav-tabs-wrapper { max-width: 1280px; margin: 0 auto; padding: 0.5rem 0 0 0; display: flex; gap: 4px; overflow-x: auto; }
         .nav-tab { background: transparent; border: none; color: var(--text-muted); padding: 8px 18px; border-radius: 10px; cursor: pointer; font-family: inherit; font-weight: 600; font-size: 0.85rem; display: flex; align-items: center; gap: 6px; transition: all 0.25s cubic-bezier(0.22, 1, 0.36, 1); border-bottom: 2px solid transparent; border-radius: 0; white-space: nowrap; }
         .nav-tab:hover { color: var(--text-main); }
@@ -150,6 +159,7 @@
                     <span>النواقص</span>
                 </div>
                 <div class="header-actions">
+                    <button class="install-btn" id="install-btn" type="button"><i class="fas fa-download"></i> تثبيت التطبيق</button>
                     <button class="theme-toggle-btn" id="theme-toggle"><i class="fas fa-moon"></i></button>
                 </div>
             </div>
@@ -307,12 +317,11 @@
         </div>
     </div>
 
-    <!-- Libraries -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
-    <script src="https://cdn.sheetjs.com/xlsx-0.20.2/package/dist/xlsx.full.min.js"></script>
+    <!-- Libraries (محفوظة داخل الموقع لتعمل بدون إنترنت) -->
+    <script src="vendor/jspdf.umd.min.js"></script>
+    <script src="vendor/html2canvas.min.js"></script>
+    <script src="vendor/chart.umd.min.js"></script>
+    <script src="vendor/xlsx.full.min.js"></script>
 
     <script>
         // تسجيل Service Worker ليعمل الموقع بدون إنترنت
@@ -519,10 +528,17 @@
             
             const themeToggleBtn = document.getElementById('theme-toggle');
 
-            function saveData() { 
-                localStorage.setItem('jurani_products', JSON.stringify(products)); 
-                localStorage.setItem('jurani_archive', JSON.stringify(archive)); 
-                localStorage.setItem('jurani_history', JSON.stringify(history)); 
+            function saveData() {
+                try {
+                    localStorage.setItem('jurani_products', JSON.stringify(products));
+                    localStorage.setItem('jurani_archive', JSON.stringify(archive));
+                    localStorage.setItem('jurani_history', JSON.stringify(history));
+                    return true;
+                } catch (err) {
+                    console.error(err);
+                    showToast('تعذر حفظ البيانات لأن مساحة التخزين في المتصفح ممتلئة. احذف المرفقات الكبيرة أو امسح عناصر الأرشيف نهائياً.', 'danger');
+                    return false;
+                }
             }
 
             function showToast(msg, type = 'success') { 
@@ -1069,6 +1085,44 @@
                     btn.innerHTML = '<i class="fas fa-magic"></i> مسح وتحويل تلقائي إلى PDF';
                 }
             });
+
+            /* ==================== PWA: INSTALL, OFFLINE & STORAGE ==================== */
+            const installBtn = document.getElementById('install-btn');
+            const isStandalone = window.matchMedia('(display-mode: standalone)').matches || window.navigator.standalone === true;
+            const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent) || (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+            let deferredInstallPrompt = null;
+
+            // iOS لا يدعم التثبيت بضغطة زر، لذلك يظهر الزر دائماً ويشرح الخطوات عند الضغط عليه
+            if (isIOS && !isStandalone) installBtn.classList.add('show');
+
+            window.addEventListener('beforeinstallprompt', e => {
+                e.preventDefault();
+                deferredInstallPrompt = e;
+                if (!isStandalone) installBtn.classList.add('show');
+            });
+            window.addEventListener('appinstalled', () => {
+                deferredInstallPrompt = null;
+                installBtn.classList.remove('show');
+                showToast('تم تثبيت التطبيق بنجاح! 🎉');
+            });
+            installBtn.addEventListener('click', async () => {
+                if (deferredInstallPrompt) {
+                    deferredInstallPrompt.prompt();
+                    const { outcome } = await deferredInstallPrompt.userChoice;
+                    deferredInstallPrompt = null;
+                    if (outcome === 'accepted') installBtn.classList.remove('show');
+                    return;
+                }
+                showToast(isIOS
+                    ? 'على iPhone: اضغط زر المشاركة ثم اختر «إضافة إلى الشاشة الرئيسية»'
+                    : 'من قائمة المتصفح اختر «تثبيت التطبيق» (Install app)');
+            });
+
+            window.addEventListener('offline', () => showToast('أنت الآن بدون إنترنت. التطبيق يعمل بشكل طبيعي وبياناتك محفوظة على هذا الجهاز.', 'danger'));
+            window.addEventListener('online', () => showToast('عاد الاتصال بالإنترنت.'));
+
+            // طلب تخزين دائم حتى لا يحذف المتصفح البيانات عند نقص المساحة
+            if (navigator.storage && navigator.storage.persist) navigator.storage.persist().catch(() => {});
 
             /* ==================== INIT ==================== */
             renderProducts(); updateDashboard(); renderArchive(); renderHistory();
